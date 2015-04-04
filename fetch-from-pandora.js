@@ -25,6 +25,7 @@ var userPassword = process.argv[3];
 console.log('username:', userUsername);
 console.log('password:', userPassword);
 
+var db;
 var partnerId;
 var partnerAuthToken;
 var timeOffset;
@@ -33,7 +34,7 @@ var userAuthToken;
 
 var axios = require('axios');
 var crypto = require('crypto');
-var sqlite3 = require('sqlite3').verbose();
+var qsql = require('q-sqlite3');
 
 function encrypt(text) {
     var cipher = crypto.createCipheriv('bf-ecb', partnerEncryptKey, '');
@@ -164,8 +165,22 @@ function getExtendedStationInformation(stationToken) {
     });
 }
 
+function initDb() {
+    return qsql.createDatabase('tracks.db')
+        .then(function(_db) {
+            db = _db;
+        });
+}
 
-doPartnerLogin()
+function storeTrack(artistName, songName) {
+    return db.run('INSERT INTO tracks (artistName, songName) VALUES (?, ?)', [ artistName, songName ]);
+}
+
+
+initDb()
+    .then(function(db) {
+        return doPartnerLogin();
+    })
     .then(function(response) {
         console.log('partnerLogin response:', response.data);
         if (response.data.stat != 'ok') {
@@ -204,10 +219,13 @@ doPartnerLogin()
             var feedback = response.data.result.feedback;
             console.log('FEEDBACK:', feedback);
             console.log("");
+            var promises = [];
             for (var i = 0; i < feedback.thumbsUp.length; i++) {
                 var track = feedback.thumbsUp[i];
                 console.log(track.songName, 'by', track.artistName);
+                promises.push(storeTrack(track.artistName, track.songName));
             }
+            return Promise.all(promises);
         }
     })
     .catch(function(response) {

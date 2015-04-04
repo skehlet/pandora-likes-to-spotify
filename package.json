@@ -5,7 +5,8 @@
   "main": "go.js",
   "dependencies": {
     "axios": "^0.5.2",
-    "sqlite3": "^3.0.5"
+    "q-sqlite3": "^0.1.2",
+    "spotify-web-api-node": "^2.0.1"
   },
   "devDependencies": {},
   "scripts": {
